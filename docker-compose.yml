@@ -1,0 +1,23 @@
+# 独立邮件服务 - 可通过 bridge 与 MathStudyPlatform 通信
+# 与 MathPlatform 同网段时，使用 hostname: email-service 或容器名
+services:
+  email-service:
+    build: .
+    container_name: email_service
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8025:8025"
+    networks:
+      - email_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8025/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  email_network:
+    driver: bridge
