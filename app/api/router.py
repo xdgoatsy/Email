@@ -17,13 +17,12 @@ mailer = Mailer()
 # =============================================================================
 
 
-class SendVerifyEmailRequest(BaseModel):
-    """邮箱绑定验证 - 请求"""
+class SendVerifyCodeRequest(BaseModel):
+    """邮箱验证码 - 请求"""
 
     to: EmailStr
     username: str
-    token: str
-    confirm_url_base: str
+    code: str
 
 
 class SendPasswordResetRequest(BaseModel):
@@ -47,28 +46,27 @@ class SendResponse(BaseModel):
 
 
 @router.post(
-    "/send-verify-email",
+    "/send-verify-code",
     response_model=SendResponse,
     dependencies=[Depends(verify_api_key)],
 )
-async def send_verify_email(
-    body: SendVerifyEmailRequest,
+async def send_verify_code(
+    body: SendVerifyCodeRequest,
 ) -> SendResponse:
     """
-    发送邮箱绑定验证邮件
+    发送邮箱验证码
 
-    MathStudyPlatform 在用户注册/绑定邮箱时调用，向用户发送带确认链接的邮件。
-    用户需点击链接完成验证。
+    MathStudyPlatform 在用户注册/绑定邮箱时调用，向用户发送 6 位验证码。
+    用户需在页面输入验证码完成验证。
     """
-    ok = await mailer.send_verify_email(
+    ok = await mailer.send_verify_code(
         to=body.to,
         username=body.username,
-        token=body.token,
-        confirm_url_base=body.confirm_url_base,
+        code=body.code,
     )
     return SendResponse(
         success=ok,
-        message="验证邮件已发送" if ok else "验证邮件发送失败",
+        message="验证码已发送" if ok else "验证码发送失败",
     )
 
 

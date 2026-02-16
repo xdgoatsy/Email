@@ -4,7 +4,7 @@
 
 ## 功能
 
-1. **邮箱绑定验证**：用户注册/绑定邮箱时发送验证邮件，用户点击确认链接完成验证
+1. **邮箱绑定验证**：用户注册/绑定邮箱时发送 6 位验证码邮件，用户输入验证码完成验证
 2. **密码重置通知**：管理员审批通过密码重置申请后，向用户发送包含临时密码的邮件
 
 ## 快速开始
@@ -26,22 +26,21 @@ docker compose up -d
 
 所有接口需在请求头携带 `X-API-Key: <your-api-key>`。
 
-### 1. 发送邮箱验证邮件
+### 1. 发送邮箱验证码
 
 ```
-POST /api/v1/send-verify-email
+POST /api/v1/send-verify-code
 Content-Type: application/json
 X-API-Key: <api-key>
 
 {
   "to": "user@example.com",
   "username": "张三",
-  "token": "uuid-or-random-string",
-  "confirm_url_base": "https://your-platform.com/auth/verify-email"
+  "code": "123456"
 }
 ```
 
-发送后邮件内含链接：`{confirm_url_base}?token={token}`。MathStudyPlatform 需实现该页面，接收 `token` 并调用后端完成邮箱验证。
+发送后邮件内含 6 位验证码。MathStudyPlatform 后端生成验证码并存入数据库，用户输入后调用后端 `POST /auth/verify-email-by-code` 完成验证。
 
 ### 2. 发送密码重置通知
 
@@ -88,17 +87,12 @@ import httpx
 EMAIL_SERVICE_URL = "http://email-service:8025"  # 同 bridge 下的容器名
 EMAIL_API_KEY = "your-api-key"
 
-async def send_verify_email(to: str, username: str, token: str, confirm_base: str):
+async def send_verify_code(to: str, username: str, code: str):
     async with httpx.AsyncClient() as client:
         r = await client.post(
-            f"{EMAIL_SERVICE_URL}/api/v1/send-verify-email",
+            f"{EMAIL_SERVICE_URL}/api/v1/send-verify-code",
             headers={"X-API-Key": EMAIL_API_KEY},
-            json={
-                "to": to,
-                "username": username,
-                "token": token,
-                "confirm_url_base": confirm_base,
-            },
+            json={"to": to, "username": username, "code": code},
         )
         return r.status_code == 200 and r.json().get("success")
 
@@ -114,7 +108,7 @@ async def send_password_reset(to: str, username: str, temp_password: str):
 
 ### 3. 集成时机
 
-- **邮箱验证**：用户注册时创建未验证用户/待验证记录，调用 `send-verify-email`；前端实现 `/auth/verify-email?token=xxx`，接收后调后端完成验证
+- **邮箱验证**：用户注册/绑定邮箱时，后端生成 6 位验证码并调用 `send-verify-code`；用户输入验证码后调用 `POST /auth/verify-email-by-code` 完成验证
 - **密码重置**：`password_reset_service.review_request` 在 `action=="approve"` 且修改密码成功后，调用 `send-password-reset`
 
 ## 健康检查

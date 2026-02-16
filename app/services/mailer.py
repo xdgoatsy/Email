@@ -68,20 +68,18 @@ class Mailer:
             logger.exception("邮件发送失败: to=%s, error=%s", to, e)
             return False
 
-    async def send_verify_email(
+    async def send_verify_code(
         self,
         to: str,
         username: str,
-        token: str,
-        confirm_url_base: str,
+        code: str,
     ) -> bool:
         """
-        发送邮箱绑定验证邮件
+        发送邮箱验证码
 
-        链接格式: {confirm_url_base}?token={token}
+        用于邮箱绑定/注册验证，用户需在页面输入验证码完成验证。
         """
-        verify_link = f"{confirm_url_base.rstrip('/')}?token={token}"
-        subject = "请确认您的邮箱 - MathStudyPlatform"
+        subject = "您的邮箱验证码 - MathStudyPlatform"
 
         html_body = f"""
 <!DOCTYPE html>
@@ -89,15 +87,12 @@ class Mailer:
 <head><meta charset="utf-8"></head>
 <body style="font-family: sans-serif; line-height: 1.6; color: #333;">
   <div style="max-width: 560px; margin: 0 auto; padding: 20px;">
-    <h2>邮箱验证</h2>
+    <h2>邮箱验证码</h2>
     <p>您好，{username}：</p>
-    <p>您正在 MathStudyPlatform 绑定邮箱，请点击下方链接完成验证：</p>
-    <p style="margin: 24px 0;">
-      <a href="{verify_link}" style="display: inline-block; padding: 12px 24px; background: #1890ff; color: white; text-decoration: none; border-radius: 4px;">确认邮箱</a>
-    </p>
-    <p style="color: #666; font-size: 14px;">或复制以下链接到浏览器打开：</p>
-    <p style="word-break: break-all; font-size: 13px; color: #1890ff;">{verify_link}</p>
-    <p style="color: #999; font-size: 12px; margin-top: 32px;">此链接 24 小时内有效。如非本人操作，请忽略此邮件。</p>
+    <p>您正在 MathStudyPlatform 绑定/验证邮箱，您的验证码为：</p>
+    <p style="margin: 24px 0; padding: 20px; background: #f5f5f5; border-radius: 8px; font-family: monospace; font-size: 28px; letter-spacing: 8px; text-align: center;">{code}</p>
+    <p style="color: #666; font-size: 14px;">验证码 10 分钟内有效。如非本人操作，请忽略此邮件。</p>
+    <p style="color: #999; font-size: 12px; margin-top: 32px;">此邮件由系统自动发送，请勿直接回复。</p>
   </div>
 </body>
 </html>
@@ -105,11 +100,11 @@ class Mailer:
 
         text_body = f"""您好，{username}：
 
-您正在 MathStudyPlatform 绑定邮箱，请点击以下链接完成验证：
+您正在 MathStudyPlatform 绑定/验证邮箱，您的验证码为：
 
-{verify_link}
+{code}
 
-此链接 24 小时内有效。如非本人操作，请忽略此邮件。
+验证码 10 分钟内有效。如非本人操作，请忽略此邮件。
 """
         return await self.send(to=to, subject=subject, html_body=html_body, text_body=text_body)
 

@@ -7,7 +7,9 @@ from fastapi import Header, HTTPException, status
 from app.config import settings
 
 
-async def verify_api_key(x_api_key: Annotated[str | None, Header()] = None) -> None:
+async def verify_api_key(
+    x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
+) -> None:
     """验证 API Key，调用方需携带 X-API-Key"""
     if not x_api_key or x_api_key != settings.api_key:
         raise HTTPException(

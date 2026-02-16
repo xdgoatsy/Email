@@ -44,7 +44,7 @@ services:
 
 ### 2.1 邮箱绑定验证
 
-**接口**：`POST /api/v1/send-verify-email`  
+**接口**：`POST /api/v1/send-verify-code`  
 **Header**：`X-API-Key: <你的 API_KEY>`
 
 **请求体**：
@@ -52,16 +52,15 @@ services:
 {
   "to": "user@example.com",
   "username": "张三",
-  "token": "uuid 或随机字符串",
-  "confirm_url_base": "https://your-platform.com/auth/verify-email"
+  "code": "123456"
 }
 ```
 
-**调用时机**：用户注册/绑定邮箱时，在创建用户或保存待验证记录后调用。邮件中的确认链接为 `{confirm_url_base}?token={token}`。
+**调用时机**：用户注册/绑定邮箱时，后端生成 6 位验证码、存入数据库（如 `email_verification_tokens`），并调用此接口发送邮件。
 
 **MathPlatform 需实现**：
-- 前端页面 `/auth/verify-email?token=xxx`，跳转后调用后端验证接口
-- 后端接口：根据 `token` 完成邮箱验证（例如将用户标记为已验证，或激活账户）
+- 后端接口 `POST /auth/verify-email-by-code`：接收 `email` 和 `code`，校验后标记邮箱已验证
+- 前端：用户输入验证码后调用该接口完成验证
 
 ### 2.2 密码重置通知
 
@@ -93,23 +92,18 @@ EMAIL_SERVICE_URL = "http://email-service:8025"  # Docker 内网
 EMAIL_API_KEY = "your-api-key"  # 从 settings 读取
 
 
-async def send_verify_email(to: str, username: str, token: str, confirm_url_base: str) -> bool:
+async def send_verify_code(to: str, username: str, code: str) -> bool:
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.post(
-                f"{EMAIL_SERVICE_URL}/api/v1/send-verify-email",
+                f"{EMAIL_SERVICE_URL}/api/v1/send-verify-code",
                 headers={"X-API-Key": EMAIL_API_KEY},
-                json={
-                    "to": to,
-                    "username": username,
-                    "token": token,
-                    "confirm_url_base": confirm_url_base,
-                },
+                json={"to": to, "username": username, "code": code},
             )
             data = r.json()
             return r.status_code == 200 and data.get("success", False)
     except Exception as e:
-        logger.exception("发送验证邮件失败: %s", e)
+        logger.exception("发送验证码邮件失败: %s", e)
         return False
 
 
