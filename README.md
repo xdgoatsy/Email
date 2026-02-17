@@ -16,7 +16,7 @@ cp .env.example .env
 
 # 本地运行
 pip install .
-uvicorn app.main:app --host 0.0.0.0 --port 8025
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8025
 
 # 或 Docker 运行
 docker compose up -d
